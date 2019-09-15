@@ -1,0 +1,15 @@
+---
+# Docker
+docker_version: 18.09.1
+docker_edition: 'ce'
+docker_group_members: []
+
+
+# Docker Compose
+docker_compose_install: True
+docker_compose_version: 1.21.2
+
+
+# Distribution
+distribution: ubuntu
+distribution_release: xenial

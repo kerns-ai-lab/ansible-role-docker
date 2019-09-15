@@ -1,0 +1,119 @@
+---
+- name: 'Check if Docker is installed'
+  stat:
+    path: '{{ docker_path }}'
+  register: docker_present
+  
+
+- name: 'Check if Docker is target version'
+  become: True
+  shell: 'docker -v'
+  register: docker_vercheck
+  changed_when: False
+  when: docker_present.stat.exists
+
+
+  # Block for when installing Docker version
+- block:
+
+
+  - name: 'Cleanup old versions of docker'
+    become: True
+    apt:
+      name: '{{ item }}'
+      state: absent
+      update_cache: True
+    loop: '{{ docker_remove_packages }}'
+    when: docker_present.stat.exists
+
+
+  - name: 'Remove docker files'
+    become: True
+    file:
+      path: '{{ item }}'
+      state: absent
+    loop:
+      - /var/lib/docker
+      - /etc/docker
+      - /var/run/docker.sock
+      - /etc/apparmor.d/docker
+    when: docker_present.stat.exists
+
+
+  - name: 'Add Docker GPG key to system'
+    become: True
+    apt_key: 
+      url: '{{ docker_repo_gpg }}'
+      state: present
+    when: not docker_present.stat.exists
+
+
+  - name: 'Add Docker repository to Apt sources'
+    become: True
+    apt_repository:
+      repo: '{{ docker_repo_url }}'
+      state: present
+      filename: docker
+      update_cache: True
+    when: not docker_present.stat.exists
+
+
+  - name: 'Install Docker pre-requisite dependencies'
+    become: True
+    apt:
+      name: '{{ item }}'
+      state: present
+    loop: '{{ docker_requisite_packages }}'
+
+
+    # Deliberately not using package module. If docker-ce and docker-ce-cli
+    # aren't installed in same command then the version is promoted to latest
+    # instead of installing the target version.
+    # Disable interactive dpkg errors when updating docker versions
+  - name: 'Install Docker'
+    become: True
+    shell: 'apt-get install -y {{ docker_packages|join(" ") }}'
+    environment:
+      DEBIAN_FRONTEND: noninteractive
+    args:
+      warn: False
+
+
+  - name: 'Ensure Docker group exists'
+    become: True
+    group:
+      name: '{{ docker_group }}'
+      state: present
+
+
+  - name: 'Add users to docker group'
+    become: True
+    user:
+      name: '{{ item }}'
+      groups: '{{ docker_group }}'
+      append: True
+      state: present
+    loop: '{{ docker_group_members }}'
+    when: docker_group_members is defined
+
+
+  when: (not docker_present.stat.exists) or
+        (docker_version is not defined) or 
+        (docker_version|string not in docker_vercheck.stdout|default(""))
+
+
+- name: 'Validate Docker Version'
+  become: True
+  shell: 'docker -v'
+  changed_when: False
+  register: docker_vercheck
+
+
+- fail:
+    msg: 'Docker {{ docker_version }} is missing. Aborting role'
+  when: 'docker_version|string not in docker_vercheck.stdout|default("")'
+
+
+- debug:
+    msg: 'Docker {{ docker_version }} is installed'
+  when: docker_version in docker_vercheck.stdout 

@@ -1,0 +1,37 @@
+---
+# Docker
+docker_package: 'docker-{{ docker_edition }}'
+docker_cli_package: 'docker-{{ docker_edition }}-cli' 
+docker_package_version: '5:{{ docker_version }}~3-0~{{ distribution }}-{{ distribution_release }}'
+docker_group: docker
+docker_path: '/usr/bin/docker'
+docker_repo_gpg: 'https://download.docker.com/linux/ubuntu/gpg'
+docker_repo_url: 'deb https://download.docker.com/linux/{{ distribution }} {{ distribution_release }} stable'
+
+
+docker_remove_packages:
+  - docker
+  - '{{ docker_package }}'
+  - '{{ docker_cli_package }}'
+  - docker-engine
+  - docker.io
+  - containerd
+  - runc
+
+
+docker_requisite_packages:
+  - apt-transport-https
+  - ca-certificates
+  - software-properties-common
+  - curl
+
+
+docker_packages:
+  - '{{ docker_package }}={{ docker_package_version }}'
+  - '{{ docker_cli_package }}={{ docker_package_version }}'
+
+
+# Docker Compose
+docker_compose_package: docker-compose
+docker_compose_path: '/usr/local/bin/docker-compose'
+docker_compose_url: 'https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-Linux-x86_64'
