@@ -1,0 +1,32 @@
+#
+# Cleanup Docker installation
+#
+# Tasks to check current docker installation, clean environment,
+# and handle upgrading Docker on the system
+#
+---
+  - name: 'Cleanup old versions of docker'
+    become: True
+    apt:
+      name: '{{ item }}'
+      state: absent
+      update_cache: True
+    loop: '{{ docker_remove_packages }}'
+
+
+  - name: 'Stop Docker service'
+    systemd:
+      name: docker
+      state: stopped
+
+
+  - name: 'Remove docker files'
+    become: True
+    file:
+      path: '{{ item }}'
+      state: absent
+    loop:
+      - /var/lib/docker
+      - /etc/docker
+      - /var/run/docker.sock
+      - /etc/apparmor.d/docker

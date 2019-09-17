@@ -1,3 +1,12 @@
+#
+# Vars
+#
+# Definitions in this file are expected to remain constant and
+# aren't intended to be overidden in the playbook. If you find
+# yourself needing to override these definitions, consider if
+# the value needs to be changed or if the definitions is better
+# suited for placement in the defaults file. 
+#
 ---
 # Docker
 docker_package: 'docker-{{ docker_edition }}'

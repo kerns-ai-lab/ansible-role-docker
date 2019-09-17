@@ -1,3 +1,11 @@
+#
+# Installs Docker on the target host.
+#
+# This playbook will check the installed version of Docker
+# and upgrade to the target version if required.
+#
+# It will not downgrade the version
+#
 ---
 - name: 'Check if Docker is installed'
   stat:
@@ -17,26 +25,8 @@
 - block:
 
 
-  - name: 'Cleanup old versions of docker'
-    become: True
-    apt:
-      name: '{{ item }}'
-      state: absent
-      update_cache: True
-    loop: '{{ docker_remove_packages }}'
-    when: docker_present.stat.exists
-
-
-  - name: 'Remove docker files'
-    become: True
-    file:
-      path: '{{ item }}'
-      state: absent
-    loop:
-      - /var/lib/docker
-      - /etc/docker
-      - /var/run/docker.sock
-      - /etc/apparmor.d/docker
+    # Cleanup existing Docker installation
+  - import_tasks: remove_docker.yml
     when: docker_present.stat.exists
 
 
@@ -98,8 +88,9 @@
 
 
   when: (not docker_present.stat.exists) or
-        (docker_version is not defined) or 
         (docker_version|string not in docker_vercheck.stdout|default(""))
+  # End Block
+
 
 
 - name: 'Validate Docker Version'
@@ -116,4 +107,4 @@
 
 - debug:
     msg: 'Docker {{ docker_version }} is installed'
-  when: docker_version in docker_vercheck.stdout 
+  when: 'docker_version|string in docker_vercheck.stdout|default("")'

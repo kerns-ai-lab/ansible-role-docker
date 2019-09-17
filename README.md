@@ -10,6 +10,14 @@ This role requires Ansible 2.0 or higher.
 
 ### Defaults
 
+    - name: docker_version
+      desc: Target Docker version to install
+      default: 18.09.1 
+
+    - name: docker_edition
+      desc: Docker software edition (ce | ee)
+      default: ce
+
     - name: docker_group_members
       desc: Users to add to the docker group.
       default: []
@@ -36,11 +44,23 @@ These are not meant to be modified
 
     - name: docker_package 
       desc: Docker package name [ce | ee]
-      value: docker-ce
+      value: 'docker-{{ docker_edition }}'
+
+    - name: docker_cli_package 
+      desc: Docker CLI package name
+      value: 'docker-{{ docker_edition }}-cli'
+
+    - name: docker_package_version 
+      desc: Version of Docker package to install from Apt 
+      value: '5:{{ docker_version }}~3-0~{{ distribution }}-{{ distribution_release }}'
 
     - name: docker_group
       desc: Name of the docker system group
       value: docker
+
+    - name: docker_path
+      desc: Path to docker binary installation
+      value: 
 
     - name: docker_repo_gpg
       desc: URL for GPG key to Docker repository
@@ -54,17 +74,26 @@ These are not meant to be modified
       desc: Packages to be removed prior to Docker installation
       value:
         - docker
-        - docker-ce
+        - {{ docker_package }}
+        - {{ docker_cli_package }}
         - docker-engine
         - docker.io
+        - containerd
+        - runc
 
-    - name: docker_packages
+    - name: docker_requisite_packages
       desc: Pre-requisite packages to install before Docker
       value:
         - apt-transport-https
         - ca-certificates
         - software-properties-common
         - curl
+
+    - name: docker_packages
+      desc: Docker package targets for installation (Must be simultaneously installed)
+      value:
+        - {{ docker_package }}={{ docker_package_version }}
+        - {{ docker_cli_package }}={{ docker_package_version }}
 
     - name: docker_compose_package
       desc: Name of docker-compose package

@@ -1,25 +1,62 @@
+#
+# Installs docker-compose on the target host.
+#
+# This playbook will check the installed version of docker-compose
+# and upgrade to the target version if required.
+#
+# It will not downgrade the version
+#
 ---
-- name: 'Verify docker-compose version'
-  shell: 'docker-compose --version'
-  register: docker_compose_current_version
-  changed_when: false
-  failed_when: false
-
-
-- name: 'Remove old version of docker-compose'
-  become: True
-  file:
+- name: 'Check if docker-compose is present'
+  stat:
     path: '{{ docker_compose_path }}'
-    state: absent
-  when: >
-    docker_compose_current_version.stdout is defined
-    and
-    docker_compose_version not in docker_compose_current_version.stdout
+  register: docker_compose_present
 
 
-- name: 'Install docker-compose'
+- name: 'Check if docker-compose is target version'
   become: True
-  get_url:
-    url: '{{ docker_compose_url }}'
-    dest: '{{ docker_compose_path }}'
-    mode: 0755
+  shell: 'docker-compose --version'
+  register: docker_compose_vercheck
+  changed_when: false
+  when: docker_compose_present.stat.exists
+
+
+  # Block for installing docker-compose
+- block:
+
+
+  - name: 'Remove old version of docker-compose'
+    become: True
+    file:
+      path: '{{ docker_compose_path }}'
+      state: absent
+    when: docker_compose_present.stat.exists
+
+
+  - name: 'Install docker-compose'
+    become: True
+    get_url:
+      url: '{{ docker_compose_url }}'
+      dest: '{{ docker_compose_path }}'
+      mode: 0755
+
+
+  when: (not docker_compose_present.stat.exists) or
+        (docker_compose_version|string not in docker_compose_vercheck.stdout|default(""))
+
+
+- name: 'Validate docker-compose version'
+  become: True
+  shell: 'docker-compose --version'
+  changed_when: false
+  register: docker_compose_vercheck
+
+
+- fail:
+    msg: 'docker-compose {{ docker_compose_version }} is missing. Aborting role'
+  when: 'docker_compose_version|string not in docker_compose_vercheck.stdout|default("")'
+
+
+- debug:
+    msg: 'docker-compose {{ docker_compose_version }} is installed'
+  when: 'docker_compose_version|string in docker_compose_vercheck.stdout|default("")'
